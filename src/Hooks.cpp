@@ -1323,11 +1323,14 @@ void InstallHooks() {
     CurrentLocationReturnHook1::func =
         SKSE::GetTrampoline().write_call<5>(currentLocationCall1.address(), CurrentLocationReturnHook1::thunk);
 
-    REL::Relocation<std::uintptr_t> currentLocationCall2{REL::VariantID(52215, 53102, 0x916D10),
-                                                         REL::Relocate(0x63B, 0x66D, 0xC61)};
+    const REL::Relocation<std::uintptr_t> currentLocationHandler{REL::VariantID(52215, 53102, 0x916D10)};
+    const auto currentLocationCall2Offset = REL::Module::get().version() == SKSE::RUNTIME_SSE_1_7_104
+                                                ? 0x67E
+                                                : REL::Relocate(0x63B, 0x66D, 0xC61);
+    const auto currentLocationCall2 = currentLocationHandler.address() + currentLocationCall2Offset;
 
     CurrentLocationReturnHook2::func =
-        SKSE::GetTrampoline().write_call<5>(currentLocationCall2.address(), CurrentLocationReturnHook2::thunk);
+        SKSE::GetTrampoline().write_call<5>(currentLocationCall2, CurrentLocationReturnHook2::thunk);
 
     REL::Relocation<std::uintptr_t> localMapToggleCall{REL::ID(53102), 0x5A5};
 
