@@ -29,20 +29,32 @@ jobs:
         shell: pwsh
         run: New-Item -ItemType Directory -Force -Path cmake | Out-Null
 
-      - name: vcpkg 준비
+      - name: vcpkg 받기
         shell: pwsh
         run: |
           git clone https://github.com/microsoft/vcpkg.git C:\vcpkg-build
           C:\vcpkg-build\bootstrap-vcpkg.bat -disableMetrics
-          "VCPKG_ROOT=C:\vcpkg-build" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: MSVC 개발 환경 설정
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
 
+      # MSVC 환경 설정이 VCPKG_ROOT를 VS 내장 vcpkg로 덮어쓰므로 그 뒤에 다시 지정
+      # vcpkg가 요구하는 최신 Ninja(1.13 이상)도 여기서 설치
+      - name: Ninja 설치 및 vcpkg 경로 지정
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade ninja
+          $ninjaDir = python -c "import ninja; print(ninja.BIN_DIR)"
+          & "$ninjaDir\ninja.exe" --version
+          $ninjaDir | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          "NINJA_EXE=$ninjaDir\ninja.exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "VCPKG_ROOT=C:\vcpkg-build" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
       - name: CMake 구성
-        run: cmake --preset release
+        shell: pwsh
+        run: cmake --preset release "-DCMAKE_MAKE_PROGRAM=$env:NINJA_EXE"
 
       - name: 빌드
         run: cmake --build build/release --config Release
