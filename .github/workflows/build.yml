@@ -1,0 +1,57 @@
+name: Build MapMenuExtension
+
+on:
+  workflow_dispatch:
+    inputs:
+      update_commonlib:
+        description: "CommonLibSSE-NG를 최신 버전으로 갱신 (첫 빌드는 체크하지 마세요)"
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+      - name: 소스 받기 (CommonLibSSE-NG 서브모듈 포함)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: CommonLibSSE-NG 최신 갱신 (선택)
+        if: ${{ inputs.update_commonlib }}
+        run: git submodule update --remote --recursive lib/commonlibsse-ng
+
+      - name: 사용 중인 CommonLibSSE-NG 버전 표시
+        run: git -C lib/commonlibsse-ng log -1 --format="%h %cd %s"
+
+      - name: 누락된 cmake 폴더 생성
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force -Path cmake | Out-Null
+
+      - name: vcpkg 준비
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git C:\vcpkg-build
+          C:\vcpkg-build\bootstrap-vcpkg.bat -disableMetrics
+          "VCPKG_ROOT=C:\vcpkg-build" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: MSVC 개발 환경 설정
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: CMake 구성
+        run: cmake --preset release
+
+      - name: 빌드
+        run: cmake --build build/release --config Release
+
+      - name: 결과물 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: MapMenuExtension-1.7.104
+          path: |
+            build/release/**/MapMenuExtension.dll
+            build/release/**/MapMenuExtension.pdb
+          if-no-files-found: error
