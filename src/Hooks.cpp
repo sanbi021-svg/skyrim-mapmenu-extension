@@ -1214,7 +1214,7 @@ struct SetMapCameraRootHook {
         const auto& mapData = mapWorld->worldMapData;
 
         RE::NiPoint3 pos{};
-        pos.z = mapPos.z;
+        pos.z = 0.0f;  // start at sea level; mapPos.z is the player's height in a different worldspace
 
         const bool hasCenterOverride = GetMapCenterOverride(mapWorld, pos);
 
@@ -1251,7 +1251,7 @@ struct SetMapCameraRootHook {
             "({:.2f}, {:.2f}, {:.2f})",
             mapWorld->GetName() ? mapWorld->GetName() : "<unnamed>", pos.x, pos.y, pos.z);
 
-        func(camera, root, pos);
+        logger::info("[MapCameraFix] world='{}' target=({:.0f}, {:.0f}, {:.0f}) playerZ={:.0f}", mapWorld->GetName() ? mapWorld->GetName() : "<unnamed>", pos.x, pos.y, pos.z, mapPos.z); func(camera, root, pos);
 
         if (!cloudSwapPending) {
             return;
